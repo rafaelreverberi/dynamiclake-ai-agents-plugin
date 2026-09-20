@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "identifier": "com.dynamiclake.plugins.ai-agents",
+  "name": "AI Agents",
+  "version": "1.4.0",
+  "developerName": "Rafael Reverberi",
+  "executable": "ai-agents-monitor.py",
+  "arguments": [],
+  "icon": "icon.png",
+  "autoStart": true,
+  "settings": [
+    {
+      "id": "enableOpenCode",
+      "type": "switch",
+      "title": "OpenCode",
+      "description": "Show OpenCode sessions in DynamicLake.",
+      "systemImage": "terminal.fill",
+      "tint": "indigo",
+      "default": true
+    },
+    {
+      "id": "showAgentLogos",
+      "type": "switch",
+      "title": "Show agent logos",
+      "description": "Show logos on the left and a completion checkmark on the right. Minimized views always show logos.",
+      "systemImage": "person.crop.square",
+      "tint": "indigo",
+      "default": false
+    }
+  ]
+}
