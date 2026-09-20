@@ -38,14 +38,20 @@ def main() -> int:
     require(isinstance(version, str) and version, "Missing package version")
     require(f"## {version} " in (ROOT / "CHANGELOG.md").read_text(), "Changelog lacks this version")
     settings = manifest.get("settings", [])
-    require(len(settings) == 2 and {setting["id"] for setting in settings} == {"enableOpenCode", "showAgentLogos"}, "Unexpected settings")
+    require(len(settings) == 4 and {setting["id"] for setting in settings} == {"enableOpenCode", "showAgentLogos", "codexLogo", "claudeLogo"}, "Unexpected settings")
+    for setting_id, choices, default in (
+        ("codexLogo", {"ChatGPT", "Codex"}, "ChatGPT"),
+        ("claudeLogo", {"Claude", "Claude Code"}, "Claude"),
+    ):
+        setting = next(item for item in settings if item["id"] == setting_id)
+        require(setting.get("type") == "select" and {option.get("title") for option in setting.get("options", [])} == choices and setting.get("default") == default, f"Invalid {setting_id} dropdown")
 
     executable = PACKAGE / manifest["executable"]
     icon = PACKAGE / manifest["icon"]
     require(executable.is_file() and os.access(executable, os.X_OK), "Plugin executable is missing or not executable")
     require(icon.is_file() and icon.stat().st_size <= MAX_ICON_BYTES, "Package icon is missing or too large")
     compile(executable.read_bytes(), str(executable), "exec")
-    for name in ("codex.png", "claude.png", "opencode.png"):
+    for name in ("chatgpt.png", "codex.png", "claude.png", "claude-code.png", "opencode.png"):
         path = PACKAGE / "logos" / name
         require(path.is_file(), f"Missing logo: {name}")
         data = path.read_bytes()
