@@ -14,11 +14,11 @@ This is an independent plugin maintained by Rafael Reverberi; it is not affiliat
 
 ## Install or update
 
-1. For this version, run `python3 scripts/build_release.py` in this checkout and extract `dist/AI-Agents-1.5.0.zip`. The ZIP contains `AIAgents.dynamiclakeplugin`. The [v1.4.0 GitHub release](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/tag/v1.4.0) predates the logo dropdowns.
+1. Download `AI-Agents-1.5.0.zip` from the [v1.5.0 GitHub release](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/tag/v1.5.0) and extract it. The ZIP contains `AIAgents.dynamiclakeplugin`.
 2. In DynamicLake Pro, open **Settings → Plugins → Install Local** and select that extracted plugin folder.
 3. Confirm the local plugin installation and enable **AI Agents** in Plugin Status. If an older copy remains active after updating, turn it off and back on there.
 
-The ZIP's `AI-Agents-1.5.0.zip.sha256` companion file lets you check the package with `shasum -a 256 -c AI-Agents-1.5.0.zip.sha256` from the `dist` directory. You can also install the `AIAgents.dynamiclakeplugin` folder directly from this repository checkout.
+The ZIP's `AI-Agents-1.5.0.zip.sha256` companion file lets you check the download with `shasum -a 256 -c AI-Agents-1.5.0.zip.sha256` from the same directory. You can also install the `AIAgents.dynamiclakeplugin` folder directly from this repository checkout.
 
 The plugin identifier remains `com.dynamiclake.plugins.ai-agents`; its version in `plugin.json` is **1.5.0**. Reinstalling the package keeps the same plugin identity. The ZIP contains the plugin folder at its top level.
 
