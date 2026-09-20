@@ -52,6 +52,41 @@ class MonitorTests(unittest.TestCase):
                     self.assertEqual((slot['source'], slot['mimeType']), ('inlineData', 'image/png'))
                     self.assertLess(len(slot['base64Data']), 64_000)
 
+    def test_logo_dropdowns_change_active_and_minimized_surfaces(self):
+        state = monitor.AgentState('ses_1', 'Task', 'project', None, 'running', 'Working', None, 0, 0, 0, datetime.now(timezone.utc))
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Path(directory) / 'settings.json'
+            with patch.dict(os.environ, {'DYNAMICLAKE_PLUGIN_SETTINGS_PATH': str(settings)}):
+                settings.write_text(json.dumps({'values': {'showAgentLogos': True}}))
+                defaults = {source.key: monitor.activity_message(source, state, 'create')['surfaces']['extraLiveActivity']['leftSlot'] for source in monitor.SOURCES}
+                settings.write_text(json.dumps({'values': {'showAgentLogos': True, 'codexLogo': 'Codex', 'claudeLogo': 'Claude Code'}}))
+                for source in (monitor.CODEX, monitor.CLAUDE):
+                    surfaces = monitor.activity_message(source, state, 'update')['surfaces']
+                    self.assertNotEqual(surfaces['extraLiveActivity']['leftSlot'], defaults[source.key])
+                    for surface in ('compactLiveActivity', 'extraLiveActivity', 'sneakPeek'):
+                        self.assertEqual(surfaces[surface]['leftSlot'], monitor.source_logo(source))
+                self.assertEqual(monitor.activity_message(monitor.OPENCODE, state, 'update')['surfaces']['extraLiveActivity']['leftSlot'], defaults['opencode'])
+                settings.write_text(json.dumps({'values': {'codexLogo': '../wrong.png', 'claudeLogo': None}}))
+                self.assertEqual(monitor.selected_logo_name(monitor.CODEX), 'chatgpt.png')
+                self.assertEqual(monitor.selected_logo_name(monitor.CLAUDE), 'claude.png')
+
+    def test_logo_dropdown_change_republishes_unchanged_session(self):
+        state = monitor.AgentState('ses_1', 'Task', 'project', None, 'running', 'Working', None, 0, 0, 0, datetime.now(timezone.utc))
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Path(directory) / 'settings.json'
+            settings.write_text(json.dumps({'values': {'codexLogo': 'ChatGPT'}}))
+            with patch.dict(os.environ, {'DYNAMICLAKE_PLUGIN_SETTINGS_PATH': str(settings), 'AI_AGENTS_ENABLE_CLAUDE': '0', 'AI_AGENTS_ENABLE_OPENCODE': '0'}):
+                plugin = monitor.AgentsJSONPlugin()
+                sent = []
+                plugin.client.send = sent.append
+                with patch.object(monitor, 'load_latest_state', return_value=state):
+                    plugin.refresh_sources()
+                    settings.write_text(json.dumps({'values': {'codexLogo': 'Codex'}}))
+                    plugin.refresh_sources()
+                codex_messages = [message for message in sent if message['activityID'] == monitor.CODEX.activity_id]
+                self.assertEqual([message['type'] for message in codex_messages], ['create', 'update'])
+                self.assertNotEqual(codex_messages[0]['surfaces']['extraLiveActivity']['leftSlot'], codex_messages[1]['surfaces']['extraLiveActivity']['leftSlot'])
+
     def test_completed_keeps_logo_left_and_checkmark_right(self):
         state = monitor.AgentState('ses_1', 'Task', 'project', None, 'completed', 'Complete', None, 0, 0, 0, datetime.now(timezone.utc))
         with tempfile.TemporaryDirectory() as directory:

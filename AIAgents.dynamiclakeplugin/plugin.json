@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "identifier": "com.dynamiclake.plugins.ai-agents",
   "name": "AI Agents",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "developerName": "Rafael Reverberi",
   "executable": "ai-agents-monitor.py",
   "arguments": [],
@@ -26,6 +26,32 @@
       "systemImage": "person.crop.square",
       "tint": "indigo",
       "default": false
+    },
+    {
+      "id": "codexLogo",
+      "type": "select",
+      "title": "Codex logo",
+      "description": "Choose the logo shown for Codex sessions, including the minimized view.",
+      "systemImage": "square.stack.3d.up",
+      "tint": "indigo",
+      "options": [
+        { "title": "ChatGPT", "systemImage": "sparkle" },
+        { "title": "Codex", "systemImage": "terminal.fill" }
+      ],
+      "default": "ChatGPT"
+    },
+    {
+      "id": "claudeLogo",
+      "type": "select",
+      "title": "Claude logo",
+      "description": "Choose the logo shown for Claude Code sessions, including the minimized view.",
+      "systemImage": "square.stack.3d.up",
+      "tint": "indigo",
+      "options": [
+        { "title": "Claude", "systemImage": "sparkles" },
+        { "title": "Claude Code", "systemImage": "chevron.left.forwardslash.chevron.right" }
+      ],
+      "default": "Claude"
     }
   ]
 }

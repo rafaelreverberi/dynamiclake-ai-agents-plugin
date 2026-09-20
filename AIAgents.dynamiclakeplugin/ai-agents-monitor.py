@@ -60,7 +60,7 @@ class Source:
     logo: str
 
 
-CODEX = Source("codex", "Codex", "ai-agents.codex", "terminal.fill", "codex.png")
+CODEX = Source("codex", "Codex", "ai-agents.codex", "terminal.fill", "chatgpt.png")
 CLAUDE = Source("claude", "Claude", "ai-agents.claude", "sparkles", "claude.png")
 OPENCODE = Source("opencode", "OpenCode", "ai-agents.opencode", "chevron.left.forwardslash.chevron.right", "opencode.png")
 SOURCES = (CODEX, CLAUDE, OPENCODE)
@@ -95,6 +95,15 @@ def show_agent_logos() -> bool:
     return setting_bool("showAgentLogos", False)
 
 
+def selected_logo_name(source: Source, values: dict[str, Any] | None = None) -> str:
+    values = plugin_settings() if values is None else values
+    if source == CODEX and values.get("codexLogo") == "Codex":
+        return "codex.png"
+    if source == CLAUDE and values.get("claudeLogo") == "Claude Code":
+        return "claude-code.png"
+    return source.logo
+
+
 def enabled_sources(values: dict[str, Any] | None = None) -> tuple[Source, ...]:
     values = plugin_settings() if values is None else values
     enabled: list[Source] = []
@@ -111,7 +120,7 @@ def enabled_sources(values: dict[str, Any] | None = None) -> tuple[Source, ...]:
 
 
 def source_logo(source: Source) -> dict[str, str] | None:
-    path = Path(__file__).resolve().parent / "logos" / source.logo
+    path = Path(__file__).resolve().parent / "logos" / selected_logo_name(source)
     try:
         data = path.read_bytes()
     except OSError:
@@ -312,7 +321,7 @@ class AgentsJSONPlugin:
                     self.client.send(dismiss_message(source.activity_id))
                 continue
 
-            signature = result.publish_signature + f"|logos={show_agent_logos()}"
+            signature = result.publish_signature + f"|logos={show_agent_logos()}|logo={selected_logo_name(source)}"
             command_type = "create" if source.activity_id not in self.published_signatures else "update"
             if self.published_signatures.get(source.activity_id) == signature:
                 continue

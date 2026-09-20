@@ -2,6 +2,23 @@
 
 This file records changes to the AI Agents DynamicLake plugin. The package version is defined in `AIAgents.dynamiclakeplugin/plugin.json`.
 
+## 1.5.0 — 2026-09-20
+
+### Added
+
+- Codex and Claude logo dropdowns in Plugin Settings, with the existing ChatGPT/OpenAI and Claude marks retained as defaults.
+- Transparent Codex cloud and Claude Code mascot variants from images supplied for this update.
+
+### Changed
+
+- Logo changes update active activities, including the minimized side capsule, without restarting the plugin.
+- The bundled Codex and Claude Code marks keep their transparent backgrounds and shapes.
+
+### Verification
+
+- Unit tests cover both dropdown choices, invalid saved values, all logo surfaces, and updates to a running session.
+- Package validation checks the dropdown definitions and all five bundled logo files.
+
 ## 1.4.0 — 2026-09-20
 
 ### Added
