@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "identifier": "com.dynamiclake.plugins.ai-agents",
   "name": "AI Agents",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "developerName": "Rafael Reverberi",
   "executable": "ai-agents-monitor.py",
   "arguments": [],
@@ -10,48 +10,130 @@
   "autoStart": true,
   "settings": [
     {
+      "id": "alwaysShowUsage",
+      "type": "switch",
+      "title": "Show Usage when idle",
+      "description": "Open the Usage view when AI Agents has no task. Enable Usage & limits to show account percentages.",
+      "default": false,
+      "systemImage": "gauge"
+    },
+    {
+      "id": "enableUsageTracking",
+      "type": "switch",
+      "title": "Usage & limits",
+      "description": "Uses the agents’ own sign-ins. Open the gear button in AI Agents for guided setup.",
+      "default": true,
+      "systemImage": "gauge"
+    },
+    {
+      "id": "hideSetupButton",
+      "type": "switch",
+      "title": "Hide setup button",
+      "description": "Hide the gear in the notch after setup. Turn this off here to get it back.",
+      "default": false,
+      "systemImage": "gearshape"
+    },
+    {
       "id": "enableOpenCode",
       "type": "switch",
-      "title": "OpenCode",
-      "description": "Show OpenCode sessions in DynamicLake.",
-      "systemImage": "terminal.fill",
+      "title": "OpenCode monitoring",
+      "description": "Codex and Claude switches remain in DynamicLake’s built-in AI Agents settings.",
+      "systemImage": "terminal",
       "tint": "indigo",
       "default": true
     },
     {
-      "id": "showAgentLogos",
+      "id": "enableHooks",
       "type": "switch",
-      "title": "Show agent logos",
-      "description": "Show logos on the left and a completion checkmark on the right. Minimized views always show logos.",
-      "systemImage": "person.crop.square",
-      "tint": "indigo",
-      "default": false
+      "title": "Claude activity hooks",
+      "description": "Optional tool events. Install them once using Setup Claude in the plugin.",
+      "default": true,
+      "systemImage": "link"
+    },
+    {
+      "id": "interactiveApprovals",
+      "type": "switch",
+      "title": "Claude approvals",
+      "description": "Optional one-time permission decisions. Requires Claude activity hooks.",
+      "default": false,
+      "systemImage": "hand.raised"
+    },
+    {
+      "id": "codexApprovals",
+      "type": "switch",
+      "title": "Codex approvals",
+      "description": "One-time permission decisions. Install the hook in Setup Codex and trust it in Codex first.",
+      "default": false,
+      "systemImage": "hand.raised"
+    },
+    {
+      "id": "enableNotifications",
+      "type": "switch",
+      "title": "Notifications",
+      "description": "Brief previews for completion, errors and permission requests.",
+      "systemImage": "bell",
+      "default": true
+    },
+    {
+      "id": "hideProjectNames",
+      "type": "switch",
+      "title": "Privacy · hide task names",
+      "description": "Hide project and task names from the notch.",
+      "default": false,
+      "systemImage": "eye.slash"
+    },
+    {
+      "id": "hideFileNames",
+      "type": "switch",
+      "title": "Privacy · hide file names",
+      "description": "Keep operation labels generic.",
+      "default": false,
+      "systemImage": "doc"
     },
     {
       "id": "codexLogo",
       "type": "select",
-      "title": "Codex logo",
-      "description": "Choose the logo shown for Codex sessions, including the minimized view.",
-      "systemImage": "square.stack.3d.up",
+      "title": "Appearance · Codex image",
+      "description": "Choose the Codex identity image.",
+      "systemImage": "photo",
       "tint": "indigo",
       "options": [
-        { "title": "ChatGPT", "systemImage": "sparkle" },
-        { "title": "Codex", "systemImage": "terminal.fill" }
+        {
+          "title": "ChatGPT",
+          "systemImage": "sparkle"
+        },
+        {
+          "title": "Codex",
+          "systemImage": "terminal.fill"
+        }
       ],
-      "default": "ChatGPT"
+      "default": "Codex"
     },
     {
       "id": "claudeLogo",
       "type": "select",
-      "title": "Claude logo",
-      "description": "Choose the logo shown for Claude Code sessions, including the minimized view.",
-      "systemImage": "square.stack.3d.up",
+      "title": "Appearance · Claude image",
+      "description": "Choose the Claude identity image.",
+      "systemImage": "photo",
       "tint": "indigo",
       "options": [
-        { "title": "Claude", "systemImage": "sparkles" },
-        { "title": "Claude Code", "systemImage": "chevron.left.forwardslash.chevron.right" }
+        {
+          "title": "Claude",
+          "systemImage": "sparkles"
+        },
+        {
+          "title": "Claude Code",
+          "systemImage": "chevron.left.forwardslash.chevron.right"
+        }
       ],
-      "default": "Claude"
+      "default": "Claude Code"
     }
-  ]
+  ],
+  "lake": {
+    "size": "big",
+    "glance": {
+      "systemImage": "square.stack.3d.up",
+      "temporary": false
+    }
+  }
 }

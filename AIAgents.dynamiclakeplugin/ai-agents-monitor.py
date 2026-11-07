@@ -9,6 +9,7 @@ to DynamicLake.
 from __future__ import annotations
 
 import base64
+import math
 import json
 import os
 import selectors
@@ -18,9 +19,14 @@ import struct
 import sys
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+# Modules live beside the executable; support importlib-based legacy tests too.
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -38,7 +44,7 @@ def env_float(name: str, default: float, minimum: float, maximum: float) -> floa
         number = float(value)
     except ValueError:
         return default
-    return min(max(number, minimum), maximum)
+    return min(max(number, minimum), maximum) if math.isfinite(number) else default
 
 
 SCHEMA_VERSION = 1
@@ -64,13 +70,15 @@ CODEX = Source("codex", "Codex", "ai-agents.codex", "terminal.fill", "chatgpt.pn
 CLAUDE = Source("claude", "Claude", "ai-agents.claude", "sparkles", "claude.png")
 OPENCODE = Source("opencode", "OpenCode", "ai-agents.opencode", "chevron.left.forwardslash.chevron.right", "opencode.png")
 SOURCES = (CODEX, CLAUDE, OPENCODE)
+ALL_SOURCES = SOURCES
 
 
 def plugin_settings() -> dict[str, Any]:
     settings_path = os.environ.get("DYNAMICLAKE_PLUGIN_SETTINGS_PATH")
     if settings_path:
         try:
-            values = json.loads(Path(settings_path).read_text(encoding="utf-8")).get("values", {})
+            document = json.loads(Path(settings_path).read_text(encoding="utf-8"))
+            values = document.get("values", {}) if isinstance(document, dict) else {}
             if isinstance(values, dict):
                 return values
         except (OSError, ValueError, TypeError):
@@ -97,9 +105,9 @@ def show_agent_logos() -> bool:
 
 def selected_logo_name(source: Source, values: dict[str, Any] | None = None) -> str:
     values = plugin_settings() if values is None else values
-    if source == CODEX and values.get("codexLogo") == "Codex":
+    if source == CODEX and values.get("codexLogo", "Codex") == "Codex":
         return "codex.png"
-    if source == CLAUDE and values.get("claudeLogo") == "Claude Code":
+    if source == CLAUDE and values.get("claudeLogo", "Claude Code") == "Claude Code":
         return "claude-code.png"
     return source.logo
 
@@ -119,8 +127,14 @@ def enabled_sources(values: dict[str, Any] | None = None) -> tuple[Source, ...]:
     return tuple(enabled)
 
 
-def source_logo(source: Source) -> dict[str, str] | None:
-    path = Path(__file__).resolve().parent / "logos" / selected_logo_name(source)
+def source_logo(source: Source, values: dict[str, Any] | None = None) -> dict[str, str] | None:
+    result = _logo_image(selected_logo_name(source, values))
+    return result.copy() if result else None
+
+
+@lru_cache(maxsize=16)
+def _logo_image(name: str) -> dict[str, str] | None:
+    path = Path(__file__).resolve().parent / "logos" / name
     try:
         data = path.read_bytes()
     except OSError:
@@ -196,7 +210,12 @@ class DynamicLakeJSONClient:
 
     def connect(self) -> None:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(self.socket_path)
+        sock.settimeout(2)
+        try:
+            sock.connect(self.socket_path)
+        except OSError:
+            sock.close()
+            raise
         sock.setblocking(False)
         self.socket = sock
         self.selector.register(sock, selectors.EVENT_READ)
@@ -207,11 +226,16 @@ class DynamicLakeJSONClient:
         self.selector.unregister(self.socket)
         self.socket.close()
         self.socket = None
+        self.buffer.clear()
+        self.expected_length = None
 
     def send(self, message: dict[str, Any]) -> None:
         if self.socket is None:
             raise RuntimeError("DynamicLake client is not connected.")
         payload = json.dumps(message, separators=(",", ":")).encode("utf-8")
+        maximum = 256_000 if "imageAssets" in os.environ.get("DYNAMICLAKE_PLUGIN_FEATURES", "").split(",") else 64_000
+        if len(payload) > maximum:
+            raise ValueError("DynamicLake frame exceeds negotiated limit")
         frame = struct.pack(">I", len(payload)) + payload
         # Inline logos make frames larger; sendall on a nonblocking socket can
         # raise EAGAIN after a partial write and corrupt the next frame.
@@ -238,6 +262,8 @@ class DynamicLakeJSONClient:
                     break
                 self.expected_length = struct.unpack(">I", self.buffer[:4])[0]
                 del self.buffer[:4]
+                if not 0 < self.expected_length <= 256_000:
+                    raise ValueError("Invalid DynamicLake frame length")
 
             if len(self.buffer) < self.expected_length:
                 break
@@ -251,87 +277,10 @@ class DynamicLakeJSONClient:
 
 
 class AgentsJSONPlugin:
-    def __init__(self) -> None:
-        self.client = DynamicLakeJSONClient(os.environ.get("DYNAMICLAKE_JSON_SOCKET"))
-        self.published_signatures: dict[str, str] = {}
-        self.dismissed_session_ids: dict[str, str] = {}
-        self.reconciled_activity_ids: set[str] = set()
-
-    def run(self) -> int:
-        try:
-            self.client.connect()
-        except OSError as error:
-            print(f"Unable to connect to DynamicLake socket {self.client.socket_path}: {error}", file=sys.stderr)
-            print("Start DynamicLakePro before running this plugin.", file=sys.stderr)
-            return 1
-
-        print(f"{PLUGIN_NAME} connected to {self.client.socket_path}")
-        print("Monitoring Codex, Claude, and OpenCode sessions. Press Ctrl-C to stop.")
-
-        try:
-            while True:
-                self.handle_callbacks()
-                self.refresh_sources()
-                time.sleep(POLL_SECONDS)
-        except KeyboardInterrupt:
-            print("\nStopping.")
-            self.dismiss_all()
-            return 0
-        finally:
-            self.client.close()
-
-    def handle_callbacks(self) -> None:
-        for message in self.client.read_available(timeout=0):
-            print("Received:", json.dumps(message, indent=2))
-            if message.get("type") != "action":
-                continue
-
-            action_id = message.get("actionID")
-            activity_id = message.get("activityID")
-            if action_id in {"dismiss", "dismiss-codex", "dismiss-claude", "dismiss-opencode"} and isinstance(activity_id, str):
-                source = source_for_activity_id(activity_id)
-                current_state = load_latest_state(source) if source else None
-                if current_state is not None:
-                    self.dismissed_session_ids[activity_id] = current_state.session_id
-                self.client.send(dismiss_message(activity_id))
-                self.published_signatures.pop(activity_id, None)
-
-    def refresh_sources(self) -> None:
-        active_sources = enabled_sources()
-        for source in SOURCES:
-            first_refresh = source.activity_id not in self.reconciled_activity_ids
-            self.reconciled_activity_ids.add(source.activity_id)
-            if source not in active_sources:
-                was_published = self.published_signatures.pop(source.activity_id, None) is not None
-                if first_refresh or was_published:
-                    self.client.send(dismiss_message(source.activity_id))
-                self.dismissed_session_ids.pop(source.activity_id, None)
-                continue
-            result = load_latest_state(source)
-            if result is not None and self.dismissed_session_ids.get(source.activity_id) != result.session_id:
-                self.dismissed_session_ids.pop(source.activity_id, None)
-
-            is_dismissed = (
-                result is not None
-                and self.dismissed_session_ids.get(source.activity_id) == result.session_id
-            )
-            if result is None or not result.is_active or is_dismissed:
-                was_published = self.published_signatures.pop(source.activity_id, None) is not None
-                if first_refresh or was_published:
-                    self.client.send(dismiss_message(source.activity_id))
-                continue
-
-            signature = result.publish_signature + f"|logos={show_agent_logos()}|logo={selected_logo_name(source)}"
-            command_type = "create" if source.activity_id not in self.published_signatures else "update"
-            if self.published_signatures.get(source.activity_id) == signature:
-                continue
-
-            self.client.send(activity_message(source, result, command_type))
-            self.published_signatures[source.activity_id] = signature
-
-    def dismiss_all(self) -> None:
-        for source in SOURCES:
-            self.client.send(dismiss_message(source.activity_id))
+    """Backward-compatible construction name for the modular runtime."""
+    def __new__(cls):
+        from agent_runtime import Controller
+        return Controller(sys.modules[__name__])
 
 
 def activity_message(source: Source, state: AgentState, command_type: str) -> dict[str, Any]:
@@ -590,6 +539,12 @@ def opencode_phase(message: dict[str, Any] | None, part: dict[str, Any] | None) 
         if message.get("finish") != "tool-calls":
             return "completed", "Complete", None
     if part and part.get("type") == "tool":
+        tool_state = part.get("state")
+        tool_status = tool_state.get("status") if isinstance(tool_state, dict) else None
+        if tool_status == "error":
+            return "failed", "Tool failed", string_value(part.get("tool"))
+        if tool_status == "completed":
+            return "thinking", "Thinking", None
         tool_name = string_value(part.get("tool"))
         return "tool", codex_tool_detail(tool_name), tool_name
     if part and part.get("type") == "text":
@@ -748,6 +703,9 @@ class ClaudeSessionParser:
         if not obj:
             return
 
+        if obj.get("isSidechain") is True:
+            return
+
         self.session_id = string_value(obj.get("sessionId")) or string_value(obj.get("session_id")) or self.session_id
         self.cwd = string_value(obj.get("cwd")) or self.cwd
 
@@ -896,7 +854,7 @@ def tail_lines(path: Path, max_bytes: int = MAX_TAIL_BYTES) -> list[str]:
 def json_object(line: str) -> dict[str, Any] | None:
     try:
         value = json.loads(line)
-    except json.JSONDecodeError:
+    except (ValueError, TypeError, RecursionError):
         return None
     return value if isinstance(value, dict) else None
 
@@ -905,7 +863,8 @@ def parse_date(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
     except ValueError:
         return None
 
@@ -931,7 +890,7 @@ def int_value(value: Any) -> int | None:
         return None
     if isinstance(value, int):
         return value
-    if isinstance(value, float):
+    if isinstance(value, float) and math.isfinite(value):
         return int(value)
     return None
 
@@ -978,6 +937,11 @@ def assistant_message_detail(phase: str | None) -> str:
 def codex_tool_detail(tool_name: str | None) -> str:
     mapping = {
         "exec_command": "Running command",
+        "exec": "Using tools",
+        "shell_command": "Running command",
+        "read_file": "Reading file",
+        "search": "Searching code",
+        "list_files": "Listing files",
         "apply_patch": "Editing files",
         "view_image": "Inspecting image",
         "imagegen": "Generating image",
@@ -985,7 +949,7 @@ def codex_tool_detail(tool_name: str | None) -> str:
     }
     if not tool_name:
         return "Running tool"
-    return mapping.get(tool_name, f"Running {tool_name}")
+    return mapping.get(tool_name.split(".")[-1], "Running tool")
 
 
 def claude_tool_detail(tool_name: str) -> str:
@@ -1002,7 +966,7 @@ def claude_tool_detail(tool_name: str) -> str:
         "WebSearch": "Searching",
         "TodoWrite": "Updating plan",
     }
-    return mapping.get(tool_name, f"Using {tool_name}")
+    return mapping.get(tool_name, "Using tool")
 
 
 def first_tool_name(content: Any) -> str | None:
@@ -1092,7 +1056,7 @@ def tint_for_phase(phase: str) -> str:
 
 
 def progress_value_for_phase(phase: str) -> float | None:
-    if phase in {"completed", "failed"}:
+    if phase == "completed":
         return 1.0
     return None
 
@@ -1101,33 +1065,26 @@ def format_count(value: int) -> str:
     return f"{value:,}"
 
 
-def current_states() -> list[tuple[Source, AgentState]]:
-    states: list[tuple[Source, AgentState]] = []
-    for source in enabled_sources():
-        state = load_latest_state(source)
-        if state is not None:
-            states.append((source, state))
-    return states
+def current_states():
+    from agent_runtime import ProviderRegistry, settings
+    return list(ProviderRegistry(sys.modules[__name__]).collect(settings(sys.modules[__name__])).values())
 
 
 def run_check() -> int:
-    if not enabled_sources():
-        print("No agent sources are enabled.")
-        return 0
-
-    for source, state in current_states():
-        print(f"{source.title}: {state.phase} - {state.detail_text} - {state.project_text} active={state.is_active}")
+    states = current_states()
+    counts = {source.key: sum(s.provider == source.key for s in states) for source in ALL_SOURCES}
+    # Diagnostics deliberately exclude project names, session IDs and private metadata.
+    print(json.dumps({"sessions": counts, "active": sum(s.visible() for s in states)}, sort_keys=True))
     return 0
 
 
 def run_demo_json() -> int:
-    messages = [
-        activity_message(source, state, "create")
-        for source, state in current_states()
-        if state.is_active
-    ]
-    payload: Any = messages[0] if len(messages) == 1 else messages
-    print(json.dumps(payload, indent=2, sort_keys=True))
+    from agent_presentation import Presentation
+    from agent_runtime import settings
+    presentation = Presentation(sys.modules[__name__])
+    values = settings(sys.modules[__name__])
+    print(json.dumps([presentation.activity(state, "create", values)
+                      for state in current_states() if state.visible()], indent=2))
     return 0
 
 
@@ -1136,7 +1093,8 @@ def main() -> int:
         return run_check()
     if "--demo-json" in sys.argv[1:]:
         return run_demo_json()
-    return AgentsJSONPlugin().run()
+    from agent_runtime import Controller
+    return Controller(sys.modules[__name__]).run()
 
 
 if __name__ == "__main__":

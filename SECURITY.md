@@ -1,7 +1,30 @@
 # Security
 
-Version 1.4.0 is the currently supported private release.
+Report sensitive issues privately to the
+repository owner. Use synthetic reproduction data; do not paste transcripts,
+credentials, tokens, account identifiers, permission inputs or private paths.
 
-Report security issues through a private issue in this repository. Describe the behavior and reproduction steps, but do not include raw Codex, Claude, or OpenCode session files, prompts, credentials, tokens, or full project paths. If a minimal sample is needed, use synthetic data.
+The default runtime is read-only local monitoring. Optional decisions use the
+documented Codex and Claude PermissionRequest hooks.
+A 0700 current-user directory and 0600 Unix socket isolate the hook bridge from
+other users. Messages are bounded, normalized and queued in memory. Pending
+requests have random single-use IDs, original waiting connections, expiration,
+connection-liveness checks and a bounded decision queue. Oversized/incomplete
+previews cannot be approved. Native policies and other hooks are preserved.
 
-The plugin reads local session metadata and sends activity updates only to DynamicLake's local JSON plugin socket. It does not require an API key or send agent content to a remote service.
+Socket loss/shutdown cancels pending review; provider-native flow resumes. A sent
+decision is not reported as tool success. Allow and Deny require the selected request on the open Lake review page.
+Mismatched and replayed callbacks fail.
+Same-user software can access this user's resources and is not an isolation
+boundary. Host-provided callback permissions and trusted plugin installation still
+apply; this project does not bypass them.
+
+Quota reads use the Codex CLI's supported account interface with a bounded worker;
+no credentials are extracted. Codex and Claude setup uses locked atomic updates,
+private backups and marker-based uninstall.
+No provider config is changed by starting the monitor. Package builds exclude
+personal settings, transcripts, caches . Runtime disables
+bytecode writes because DynamicLake verifies installed package contents.
+
+See [PRIVACY.md](PRIVACY.md) and [docs/RESEARCH.md](docs/RESEARCH.md) for access
+boundaries, source evidence and remaining live acceptance checks.

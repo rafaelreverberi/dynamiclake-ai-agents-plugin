@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 PLUGIN = Path(__file__).resolve().parents[1] / 'AIAgents.dynamiclakeplugin' / 'ai-agents-monitor.py'
 spec = importlib.util.spec_from_file_location('ai_agents_monitor', PLUGIN)
@@ -17,6 +17,16 @@ spec.loader.exec_module(monitor)
 
 
 class MonitorTests(unittest.TestCase):
+    def stub_session(self, plugin, source, state):
+        from agent_models import AgentSession
+        plugin.bridge.start = Mock()
+        plugin.usage.refresh = Mock()
+        normalized = AgentSession(source.key,state.session_id,state.project_name,state.phase,state.detail,state.updated_at.timestamp())
+        loader = Mock(return_value=[normalized])
+        for provider in plugin.registry.providers:
+            provider.sessions = loader if provider.key == source.key else Mock(return_value=[])
+        return normalized,loader
+
     def test_opencode_reads_session_and_phase_without_content(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / 'opencode.db'
@@ -57,7 +67,7 @@ class MonitorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             settings = Path(directory) / 'settings.json'
             with patch.dict(os.environ, {'DYNAMICLAKE_PLUGIN_SETTINGS_PATH': str(settings)}):
-                settings.write_text(json.dumps({'values': {'showAgentLogos': True}}))
+                settings.write_text(json.dumps({'values': {'showAgentLogos': True,'codexLogo':'ChatGPT','claudeLogo':'Claude'}}))
                 defaults = {source.key: monitor.activity_message(source, state, 'create')['surfaces']['extraLiveActivity']['leftSlot'] for source in monitor.SOURCES}
                 settings.write_text(json.dumps({'values': {'showAgentLogos': True, 'codexLogo': 'Codex', 'claudeLogo': 'Claude Code'}}))
                 for source in (monitor.CODEX, monitor.CLAUDE):
@@ -79,11 +89,13 @@ class MonitorTests(unittest.TestCase):
                 plugin = monitor.AgentsJSONPlugin()
                 sent = []
                 plugin.client.send = sent.append
-                with patch.object(monitor, 'load_latest_state', return_value=state):
-                    plugin.refresh_sources()
-                    settings.write_text(json.dumps({'values': {'codexLogo': 'Codex'}}))
-                    plugin.refresh_sources()
-                codex_messages = [message for message in sent if message['activityID'] == monitor.CODEX.activity_id]
+                normalized,_ = self.stub_session(plugin,monitor.CODEX,state)
+                # Bundled artwork is opt-in in the production presentation.
+                settings.write_text(json.dumps({'values': {'showAgentLogos':True,'codexLogo':'ChatGPT'}}))
+                plugin.refresh_sources()
+                settings.write_text(json.dumps({'values': {'showAgentLogos':True,'codexLogo':'Codex'}}))
+                plugin.refresh_sources()
+                codex_messages = [message for message in sent if message.get('activityID') == normalized.activity_id]
                 self.assertEqual([message['type'] for message in codex_messages], ['create', 'update'])
                 self.assertNotEqual(codex_messages[0]['surfaces']['extraLiveActivity']['leftSlot'], codex_messages[1]['surfaces']['extraLiveActivity']['leftSlot'])
 
@@ -139,23 +151,19 @@ class MonitorTests(unittest.TestCase):
                 plugin = monitor.AgentsJSONPlugin()
                 sent = []
                 plugin.client.send = sent.append
-                with patch.object(monitor, 'load_latest_state', return_value=state) as load:
-                    plugin.refresh_sources()
-                    self.assertEqual([message['type'] for message in sent], ['dismiss', 'dismiss', 'create'])
-                    self.assertEqual(sent[-1]['activityID'], monitor.OPENCODE.activity_id)
-                    self.assertEqual(load.call_count, 1)
-
-                    values['enableOpenCode'] = False
-                    settings.write_text(json.dumps({'values': values}))
-                    plugin.refresh_sources()
-                    self.assertEqual([message['type'] for message in sent[-2:]], ['create', 'dismiss'])
-                    self.assertEqual(load.call_count, 1)
-
-                    values['enableOpenCode'] = True
-                    settings.write_text(json.dumps({'values': values}))
-                    plugin.refresh_sources()
-                    self.assertEqual([message['type'] for message in sent[-3:]], ['create', 'dismiss', 'create'])
-                    self.assertEqual(load.call_count, 2)
+                normalized,load = self.stub_session(plugin,monitor.OPENCODE,state)
+                plugin.refresh_sources()
+                self.assertEqual([m['type'] for m in sent if m.get('activityID')==normalized.activity_id],['create'])
+                self.assertEqual(load.call_count,1)
+                values['enableOpenCode'] = False
+                settings.write_text(json.dumps({'values': values}))
+                plugin.refresh_sources()
+                self.assertEqual(load.call_count,1)
+                values['enableOpenCode'] = True
+                settings.write_text(json.dumps({'values': values}))
+                plugin.refresh_sources()
+                self.assertEqual([m['type'] for m in sent if m.get('activityID')==normalized.activity_id],['create','dismiss','create'])
+                self.assertEqual(load.call_count,2)
 
     def test_host_codex_claude_controls_ignore_old_duplicate_values(self):
         values = {'enableCodex': True, 'enableClaude': True, 'enableOpenCode': True}
@@ -173,12 +181,12 @@ class MonitorTests(unittest.TestCase):
         sent = []
         plugin.client.send = sent.append
         with patch.object(monitor, 'enabled_sources', return_value=(monitor.CODEX,)):
-            with patch.object(monitor, 'load_latest_state', return_value=state):
-                plugin.refresh_sources()
-                plugin.refresh_sources()
+            self.stub_session(plugin,monitor.CODEX,state)
+            plugin.refresh_sources()
+            plugin.refresh_sources()
         self.assertEqual([(message['type'], message['activityID']) for message in sent], [
-            ('dismiss', source.activity_id) for source in monitor.SOURCES
-        ])
+            ('dismiss', source.activity_id) for source in monitor.ALL_SOURCES
+        ] + [('dismiss', 'ai-agents-usage')])
 
     def test_codex_metadata_write_does_not_revive_completed_turn(self):
         old = datetime.now(timezone.utc) - timedelta(minutes=5)
