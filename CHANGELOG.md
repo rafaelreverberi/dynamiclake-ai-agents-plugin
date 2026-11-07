@@ -2,6 +2,11 @@
 
 This file records changes to the AI Agents DynamicLake plugin. The package version is defined in `AIAgents.dynamiclakeplugin/plugin.json`.
 
+## 2.0.1 — 2026-11-07
+
+- Format long quota windows and reset countdowns in days, hours, and minutes.
+- Show quota reset and last-check times in the Mac's local time zone.
+
 ## 2.0.0 — 2026-11-07
 
 - Publish AI Agents 2.0 with Progress, Usage, DynaGlance, and optional Claude and Codex approvals.

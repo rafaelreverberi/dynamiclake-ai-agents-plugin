@@ -343,6 +343,27 @@ class IntegrationTests(unittest.TestCase):
 
 
 class PresentationTests(unittest.TestCase):
+    def test_codex_free_reset_shows_remaining_time_and_local_date(self):
+        reset=1767225600  # 1 January 2026, 00:00 UTC
+        now=reset-2000*60
+        quota=models.quota_snapshots({'rateLimits':{'primary':{
+            'usedPercent':50,'windowDurationMins':2000,'resetsAt':reset
+        }}},now)
+        presentation=Presentation(legacy)
+        presentation.page='usage'
+        presentation.usage_provider='codex'
+        try:
+            with patch.dict(os.environ,{'TZ':'America/New_York','DYNAMICLAKE_PLUGIN_FEATURES':'lake,lakeLayout'}), \
+                 patch('time.time',return_value=now):
+                time.tzset()
+                lake=presentation.lake([],[],quota,{}, {})['lake']
+        finally:
+            time.tzset()
+        details=[item['text'] for item in lake['bottom']]
+        self.assertIn('Codex · codex · 1 d 9 h 20 min',details)
+        self.assertIn('Resets in 1 d 9 h 20 min',details)
+        self.assertIn('31 Dec, 19:00 EST',details)
+
     def test_privacy_on_every_surface(self):
         p=Presentation(legacy);s=session();s.steps=[models.AgentTaskStep('x','Read private.swift','running','private.swift')]
         values={'hideProjectNames':True,'hideFileNames':True}

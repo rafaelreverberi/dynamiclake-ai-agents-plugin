@@ -1,4 +1,4 @@
-# Release review — 2.0.0
+# Release review — 2.0.1
 
 GitHub Releases distributes the ZIP for local installation in DynamicLake.
 DynamicLake Market has its own submission and review process.
@@ -8,7 +8,7 @@ DynamicLake Market has its own submission and review process.
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py
 cd dist
-shasum -a 256 -c AI-Agents-2.0.0.zip.sha256
+shasum -a 256 -c AI-Agents-2.0.1.zip.sha256
 ```
 
 The builder runs unit tests, validates Python syntax, identity/version/settings,

@@ -91,6 +91,13 @@ class AgentPermissionRequest:
     decision: str | None = None
 
 
+def format_minutes(minutes):
+    days, remainder = divmod(minutes, 24 * 60)
+    hours, minutes = divmod(remainder, 60)
+    parts = [f'{value} {unit}' for value, unit in ((days, 'd'), (hours, 'h'), (minutes, 'min')) if value]
+    return ' '.join(parts) or '0 min'
+
+
 def quota_snapshots(result, now=None):
     """Only accept actual account/rateLimits/read windows; never infer quotas."""
     now = time.time() if now is None else now
@@ -109,7 +116,9 @@ def quota_snapshots(result, now=None):
             if isinstance(used, bool) or not isinstance(used, (int, float)) or not math.isfinite(used) or not 0 <= used <= 100:
                 continue
             duration = window.get('windowDurationMins')
-            label = {300: '5-hour', 10080: 'Weekly'}.get(duration, f'{duration} min' if isinstance(duration, int) and duration > 0 else name.title())
+            label = name.title()
+            if type(duration) is int and duration > 0:
+                label = {300: '5-hour', 10080: 'Weekly'}.get(duration) or format_minutes(duration)
             reset = window.get('resetsAt')
             reset = reset if isinstance(reset, (int, float)) and not isinstance(reset, bool) and math.isfinite(reset) and reset > 0 else None
             snapshots.append(AgentUsageSnapshot('codex', short(limit, 24) + ' · ' + label, used, reset, now, 'Codex account/rateLimits/read', short(data.get('planType')) or None))

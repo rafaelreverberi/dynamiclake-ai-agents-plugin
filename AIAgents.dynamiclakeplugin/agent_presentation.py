@@ -2,10 +2,11 @@
 from __future__ import annotations
 import base64
 import hashlib
+import math
 import time
 import textwrap
 from datetime import datetime, timezone
-from agent_models import short
+from agent_models import format_minutes, short
 from agent_artwork import quota_ring
 
 NAMES={'codex':'Codex','claude':'Claude','opencode':'OpenCode'}
@@ -343,8 +344,17 @@ class Presentation:
                 u=self.quota_choice(self.usage_provider,usage)
                 if u:
                     details=[text(NAMES[u.provider]+' · '+u.window,weight='semibold'),text(f'{u.used_percent:g}% used · {u.remaining_percent:g}% left',True)]
-                    if u.resets_at:details.append(text('Resets '+datetime.fromtimestamp(u.resets_at,timezone.utc).strftime('%d %b, %H:%M UTC'),True))
-                    details.append(text(u.source+' · '+datetime.fromtimestamp(u.updated_at,timezone.utc).strftime('%H:%M UTC'),True))
+                    if u.resets_at:
+                        try:
+                            reset=datetime.fromtimestamp(u.resets_at,timezone.utc).astimezone()
+                        except (OverflowError,OSError,ValueError):
+                            pass
+                        else:
+                            remaining=max(0,math.ceil((u.resets_at-time.time())/60))
+                            details.append(text('Resets in '+format_minutes(remaining),True))
+                            details.append(text(reset.strftime('%d %b, %H:%M %Z'),True))
+                    updated=datetime.fromtimestamp(u.updated_at,timezone.utc).astimezone()
+                    details.append(text(u.source+' · '+updated.strftime('%H:%M %Z'),True))
                 else:
                     explanation={'claude':'Connect the optional Claude usage input to show its limits.','codex':'No quota data is available for this account.','opencode':'No Console limits have been returned. Connect OpenCode Console, then check usage.'}
                     details=[text(NAMES[self.usage_provider],weight='semibold'),*self.copy_lines(explanation[self.usage_provider])]

@@ -2,7 +2,7 @@
 
 **Codex · Claude Code · OpenCode** — focused progress and usage in your Mac's notch.
 
-Version **2.0.0** includes a Progress view with
+Version **2.0.1** includes a Progress view with
 agent image, current action and recent steps; a Usage view with three
 logo-centered remaining-quota rings. The two circular switches sit at the top.
 A gear button opens guided provider setup; there is no general diagnostics page. The original package icon and agent images
@@ -21,7 +21,7 @@ Python 3.10+ available as `python3`. Identifier remains
 
 1. Build with `PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py`, or download
    the ZIP and SHA-256 checksum from [GitHub Releases](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest).
-2. Verify using `shasum -a 256 -c AI-Agents-2.0.0.zip.sha256` in that directory.
+2. Verify using `shasum -a 256 -c AI-Agents-2.0.1.zip.sha256` in that directory.
 3. Extract and select `AIAgents.dynamiclakeplugin` in DynamicLake's
    **Settings → Plugins → Install Local**. Confirm installation and enable it.
 4. Use Smart Left Click on its activity, or assign AI Agents as the click Lake.
@@ -45,7 +45,7 @@ private contents; lifecycle behavior is covered by synthetic regression fixtures
 
 **Usage & limits** is on by default for new installations. Codex reads its account
 quota through its own `codex app-server` login. Rings show **remaining**, with available
-5-hour/weekly windows. Tap a ring for source/reset/freshness. OpenCode reads Go allowances and Console budgets through its own current CLI.
+5-hour/weekly windows. Tap a ring for the quota source, remaining time, and reset time in your local time zone. OpenCode reads Go allowances and Console budgets through its own current CLI.
 Free-model daily counters are not supplied by that API. Claude can receive its
 authentic limits through the local collector below. No fake usage totals.
 Account reads may contact OpenAI through Codex; no credentials are extracted.

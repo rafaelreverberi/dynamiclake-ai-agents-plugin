@@ -1,4 +1,4 @@
-# Current capabilities — 2.0.0
+# Current capabilities — 2.0.1
 
 Only **Codex, Claude Code and OpenCode** are supported. The interface has two
 primary views, Progress and Usage. Permission review appears only for an actual

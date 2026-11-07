@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "identifier": "com.dynamiclake.plugins.ai-agents",
   "name": "AI Agents",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "developerName": "Rafael Reverberi",
   "executable": "ai-agents-monitor.py",
   "arguments": [],
