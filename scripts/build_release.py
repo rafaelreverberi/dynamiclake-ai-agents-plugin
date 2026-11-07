@@ -68,7 +68,7 @@ def main() -> int:
     files = sorted([PACKAGE / "plugin.json", PACKAGE / "icon.png"] + list(PACKAGE.glob("*.py"))
                    + list((PACKAGE / "logos").glob("*.png")) + list(PACKAGE.glob("*.md"))
                    + [PACKAGE / "opencode-approvals" / "index.js"])
-    docs = [ROOT / name for name in ("README.md", "PRIVACY.md", "SECURITY.md", "ASSETS.md", "CHANGELOG.md", "RELEASING.md")]
+    docs = [ROOT / name for name in ("README.md", "LICENSE.md", "PRIVACY.md", "SECURITY.md", "ASSETS.md", "CHANGELOG.md", "RELEASING.md")]
     docs += sorted((ROOT / "docs").glob("*.md"))
     entries = [(path, str(path.relative_to(ROOT))) for path in files]
     entries += [(path, PACKAGE.name + "/" + str(path.relative_to(ROOT))) for path in docs]

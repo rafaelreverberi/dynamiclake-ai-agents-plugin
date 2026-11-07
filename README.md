@@ -2,6 +2,11 @@
 
 **Codex · Claude Code · OpenCode** — focused progress and usage in your Mac's notch.
 
+**Licensed for DynamicLake only.** You may clone, build and modify this code for
+your own use as a plugin in the DynamicLake app. Porting the code to a standalone
+app or reusing it outside DynamicLake is prohibited. See the
+[DynamicLake-Only License](LICENSE.md) for the full terms.
+
 Version **2.0.1** includes a Progress view with
 agent image, current action and recent steps; a Usage view with three
 logo-centered remaining-quota rings. The two circular switches sit at the top.
@@ -15,7 +20,7 @@ unknown account quotas are never turned into invented percentages.
 
 ## Install/update
 
-Requires macOS, a recent DynamicLake Pro/Playground with JSON plugin support, and
+Requires macOS, a recent DynamicLake app with JSON plugin support, and
 Python 3.10+ available as `python3`. Identifier remains
 `com.dynamiclake.plugins.ai-agents` for in-place updates.
 
@@ -156,5 +161,5 @@ setup tests use temporary fixtures.
 [Research](docs/RESEARCH.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md) ·
 [Assets](ASSETS.md) · [Release checklist](RELEASING.md)
 
-Independent software by Rafael Reverberi; no affiliation with DynamicLake, OpenAI,
-Anthropic or OpenCode. Existing source/asset terms remain unchanged.
+Independent software by Rafael Reverberi with no affiliation with DynamicLake,
+OpenAI, Anthropic or OpenCode. See [asset provenance](ASSETS.md) for third-party marks.

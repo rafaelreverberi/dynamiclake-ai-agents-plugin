@@ -77,9 +77,8 @@ all other providers continue. No unsupported action is advertised as available.
 Market maintainers must confirm acceptance of optional external provider hooks,
 the per-user hook bridge and installed Python 3.10+ runtime dependency. Numerical
 battery targets, accessibility acceptance, installed-host behavior on notch/pill
-and light/dark appearance need live testing. Source distribution has no existing
-license; no new source license has been assigned. Confirm distribution rights
-before publishing publicly. These are release blockers, not claims of rejection.
+and light/dark appearance need live testing. See [the source license](../LICENSE.md)
+for permitted use and [the release checklist](../RELEASING.md) for Market distribution.
 
 ## OpenCode Desktop schema correction (beta.2)
 

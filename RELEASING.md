@@ -36,8 +36,8 @@ version differences can affect compression bytes.
 
 ## Market submission blockers
 
-1. Resolve source distribution/license terms with the repository owner; no license
-   has been silently assigned. Existing agent artwork has been restored as requested; provenance remains in ASSETS.md.
+1. Confirm Market distribution permissions with the repository owner. The source
+   terms are in [LICENSE.md](LICENSE.md), and artwork provenance is in [ASSETS.md](ASSETS.md).
 2. Obtain the above host/provider acceptance evidence and review documented limits.
 3. Disclose local metadata reads, optional provider configuration changes/backups,
    current-user hook IPC, background polling, installed Python dependency and optional
