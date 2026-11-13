@@ -1,4 +1,20 @@
-# Executed validation — 6 November 2026
+# Validation
+
+## 2.0.2 release checks
+
+The release builder runs the source test suite and launches the executable from
+the ZIP after extracting it with macOS. Tests use a clean environment, unavailable
+PATH and deliberately invalid Python environment variables. They exercise both
+binary slices (Intel via Rosetta on Apple Silicon), a real OpenCode SQLite
+fixture, settings and hook replacement in temporary provider folders, Claude
+activity and quota messages, Claude and Codex permission responses and native
+fallback when the bridge is offline. A simulated DynamicLake host checks logos,
+concurrent sessions, the Usage callback, privacy, reconnect and clean shutdown.
+
+These checks do not establish Market approval, execution on physical Intel
+hardware, or rendering and provider behavior in a live DynamicLake installation.
+
+## Historical validation — 6 November 2026
 
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -q`:
   **87 tests passed**, including all 12 retained/adapted regression cases.

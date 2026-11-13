@@ -2,6 +2,15 @@
 
 This file records changes to the AI Agents DynamicLake plugin. The package version is defined in `AIAgents.dynamiclakeplugin/plugin.json`.
 
+## 2.0.2 — 2026-11-13
+
+- Bundle one macOS executable for Apple Silicon and Intel with its own Python
+  runtime. Monitoring, provider hooks and optional Claude usage setup no longer
+  require a Python installation.
+- Existing installations using the optional hooks or Claude usage collector
+  need to refresh those commands once; see the [upgrade guide](docs/SETUP.md).
+- Use a terminal symbol for the AI Agents button in DynaGlance.
+
 ## 2.0.1 — 2026-11-07
 
 - Format long quota windows and reset countdowns in days, hours, and minutes.

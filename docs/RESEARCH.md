@@ -74,8 +74,8 @@ all other providers continue. No unsupported action is advertised as available.
 
 ## Release questions, not asserted requirements
 
-Market maintainers must confirm acceptance of optional external provider hooks,
-the per-user hook bridge and installed Python 3.10+ runtime dependency. Numerical
+Market maintainers must confirm acceptance of optional external provider hooks
+and the per-user hook bridge. Version 2.0.2 ships its own Python runtime. Numerical
 battery targets, accessibility acceptance, installed-host behavior on notch/pill
 and light/dark appearance need live testing. See [the source license](../LICENSE.md)
 for permitted use and [the release checklist](../RELEASING.md) for Market distribution.

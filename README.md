@@ -7,7 +7,8 @@ your own use as a plugin in the DynamicLake app. Porting the code to a standalon
 app or reusing it outside DynamicLake is prohibited. See the
 [DynamicLake-Only License](LICENSE.md) for the full terms.
 
-Version **2.0.1** includes a Progress view with
+Version **2.0.2** bundles Python for Apple Silicon and Intel Macs and uses a
+terminal icon in DynaGlance. AI Agents includes a Progress view with
 agent image, current action and recent steps; a Usage view with three
 logo-centered remaining-quota rings. The two circular switches sit at the top.
 A gear button opens guided provider setup; there is no general diagnostics page. The original package icon and agent images
@@ -20,16 +21,21 @@ unknown account quotas are never turned into invented percentages.
 
 ## Install/update
 
-Requires macOS, a recent DynamicLake app with JSON plugin support, and
-Python 3.10+ available as `python3`. Identifier remains
+Requires macOS and a recent DynamicLake app with JSON plugin support.
+The 2.0.2 package runs on Apple Silicon and Intel and includes its Python
+runtime. Identifier remains
 `com.dynamiclake.plugins.ai-agents` for in-place updates.
 
-1. Build with `PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py`, or download
-   the ZIP and SHA-256 checksum from [GitHub Releases](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest).
-2. Verify using `shasum -a 256 -c AI-Agents-2.0.1.zip.sha256` in that directory.
+1. Download the ZIP and its SHA-256 checksum from
+   [GitHub Releases](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest),
+   or [build the package on macOS](RELEASING.md).
+2. Verify using `shasum -a 256 -c AI-Agents-2.0.2.zip.sha256` in that directory.
 3. Extract and select `AIAgents.dynamiclakeplugin` in DynamicLake's
    **Settings → Plugins → Install Local**. Confirm installation and enable it.
 4. Use Smart Left Click on its activity, or assign AI Agents as the click Lake.
+
+If you installed optional Claude or Codex integrations before updating,
+[refresh them once](docs/SETUP.md#update-optional-integrations-from-201-or-earlier).
 
 New layouts require advertised `lake` and `lakeLayout` features. Older hosts get a
 minimal supported header; a host rejecting the manifest lake key needs updating.
@@ -86,7 +92,7 @@ for eligible subscriptions, after its first API response. No auth token or extra
 Claude network request is needed. To forward only those quota fields to the plugin:
 
 ```sh
-python3 /absolute/path/AIAgents.dynamiclakeplugin/integrations.py install-usage claude
+"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup install-usage claude
 ```
 
 Enable **Account usage** in Plugin Settings. This explicitly configures a compact
@@ -103,7 +109,7 @@ Monitoring works without hooks. To use documented Claude lifecycle/permission ho
 explicitly run the installer from the **installed** package location:
 
 ```sh
-python3 /absolute/path/AIAgents.dynamiclakeplugin/integrations.py install claude
+"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup install claude
 ```
 
 Then enable **Local provider hooks**, and optionally **Claude approval controls**.
@@ -117,12 +123,13 @@ inputs use the original agent prompt. A queued decision is not tool success.
 Before removal:
 
 ```sh
-python3 /absolute/path/AIAgents.dynamiclakeplugin/integrations.py uninstall claude
+"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup uninstall claude
 ```
 
 Disable/remove the plugin through DynamicLake. Optional provider backups remain
 beside the original config and can contain its pre-existing private settings.
-No event/transcript cache is written. No other providers have hook installers.
+No event/transcript cache is written. Codex has its own optional approval hook
+described in the [setup guide](docs/SETUP.md#codex-usage-and-approvals).
 
 ## OpenCode online usage
 

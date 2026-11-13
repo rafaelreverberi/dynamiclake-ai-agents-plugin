@@ -27,6 +27,7 @@ from typing import Any, Iterable
 # Modules live beside the executable; support importlib-based legacy tests too.
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from agent_paths import package_root
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -134,7 +135,7 @@ def source_logo(source: Source, values: dict[str, Any] | None = None) -> dict[st
 
 @lru_cache(maxsize=16)
 def _logo_image(name: str) -> dict[str, str] | None:
-    path = Path(__file__).resolve().parent / "logos" / name
+    path = package_root() / "logos" / name
     try:
         data = path.read_bytes()
     except OSError:
@@ -1089,6 +1090,13 @@ def run_demo_json() -> int:
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["--hook"]:
+        from agent_hook import main as hook_main
+        return hook_main(sys.argv[2:])
+    if sys.argv[1:2] == ["--setup"]:
+        from integrations import main as setup_main
+        setup_main(sys.argv[2:])
+        return 0
     if "--check" in sys.argv[1:]:
         return run_check()
     if "--demo-json" in sys.argv[1:]:

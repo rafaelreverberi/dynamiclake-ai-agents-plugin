@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  package:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,8 +18,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Validate and package
+      - name: Run source tests
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+  package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Enable Intel smoke test on Apple Silicon
+        run: |
+          if [[ "$(uname -m)" == arm64 ]] && ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            softwareupdate --install-rosetta --agree-to-license
+          fi
+      - name: Build and test the universal archive
         run: PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py
       - name: Check archive checksum
         working-directory: dist
-        run: sha256sum --check AI-Agents-*.zip.sha256
+        run: shasum -a 256 -c AI-Agents-*.zip.sha256

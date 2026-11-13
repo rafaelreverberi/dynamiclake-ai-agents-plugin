@@ -6,11 +6,15 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
+import tempfile
 import zipfile
 from pathlib import Path
+
+from build_market_runtime import MIN_MACOS, build_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "AIAgents.dynamiclakeplugin"
@@ -27,7 +31,35 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def main() -> int:
+def verify_runtime(runtime: Path, name: str) -> list[Path]:
+    files = sorted(p for p in runtime.rglob("*") if p.is_file() or p.is_symlink())
+    require(all(not p.is_symlink() for p in files), "Symlinked runtime member")
+    binaries = [p for p in files if p == runtime / name or p.suffix in (".dylib", ".so")]
+    require(runtime / name in binaries and any(p.name.startswith("libpython") for p in binaries),
+            "Missing runtime or executable")
+    for binary in binaries:
+        architectures = subprocess.check_output(["lipo", "-archs", str(binary)], text=True).split()
+        require(set(architectures) == {"arm64", "x86_64"}, f"Not a universal2 binary: {binary.name}")
+        subprocess.run(["codesign", "--verify", "--all-architectures", str(binary)], check=True)
+        lines = subprocess.check_output(["otool", "-L", str(binary)], text=True).splitlines()
+        for line in lines:
+            if line.startswith("\t"):
+                dependency = line.split(" (compatibility version", 1)[0].strip()
+                require(dependency.startswith(("/usr/lib/", "/System/Library/")) or
+                        dependency.startswith("@rpath/") and
+                        (runtime / "_internal" / dependency.removeprefix("@rpath/")).is_file(),
+                        f"Unexpected library dependency: {dependency} ({binary.name})")
+        build = subprocess.check_output(["otool", "-l", str(binary)], text=True)
+        minimums = re.findall(r"cmd (?:LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX)\s+cmdsize \d+\s+"
+                              r"(?:platform \d+\s+minos|version) ([\d.]+)", build)
+        require(len(minimums) == 2, f"Could not identify macOS deployment targets for {binary.name}")
+        for value in minimums:
+            require(tuple(map(int, value.split(".")[:2])) <= tuple(map(int, MIN_MACOS.split("."))),
+                    f"Deployment target exceeds {MIN_MACOS}: {binary.name} ({value})")
+    return files
+
+
+def main(work: Path) -> int:
     manifest_bytes = MANIFEST.read_bytes()
     require(len(manifest_bytes) <= MAX_MANIFEST_BYTES, "plugin.json exceeds 128 KB")
     manifest = json.loads(manifest_bytes)
@@ -48,9 +80,9 @@ def main() -> int:
         setting = next(item for item in settings if item["id"] == setting_id)
         require(setting.get("type") == "select" and {option.get("title") for option in setting.get("options", [])} == choices and setting.get("default") == default, f"Invalid {setting_id} dropdown")
 
-    executable = PACKAGE / manifest["executable"]
     icon = PACKAGE / manifest["icon"]
-    require(executable.is_file() and os.access(executable, os.X_OK), "Plugin executable is missing or not executable")
+    executable = manifest["executable"]
+    require(executable == "ai-agents", "Unexpected executable name in manifest")
     require(icon.is_file() and icon.stat().st_size <= MAX_ICON_BYTES, "Package icon is missing or too large")
     for source in PACKAGE.glob("*.py"):
         compile(source.read_bytes(), str(source), "exec")
@@ -64,21 +96,25 @@ def main() -> int:
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], cwd=ROOT, env=env, check=True)
 
-    # Explicit package allowlist excludes caches and accidental user data.
-    files = sorted([PACKAGE / "plugin.json", PACKAGE / "icon.png"] + list(PACKAGE.glob("*.py"))
-                   + list((PACKAGE / "logos").glob("*.png")) + list(PACKAGE.glob("*.md"))
+    runtime = build_runtime(PACKAGE, work, executable)
+    runtime_files = verify_runtime(runtime, executable)
+    # Explicit resource allowlist excludes caches and accidental user data.
+    files = sorted([PACKAGE / "plugin.json", PACKAGE / "icon.png"]
+                   + list((PACKAGE / "logos").glob("*.png"))
                    + [PACKAGE / "opencode-approvals" / "index.js"])
     docs = [ROOT / name for name in ("README.md", "LICENSE.md", "PRIVACY.md", "SECURITY.md", "ASSETS.md", "CHANGELOG.md", "RELEASING.md")]
     docs += sorted((ROOT / "docs").glob("*.md"))
     entries = [(path, str(path.relative_to(ROOT))) for path in files]
     entries += [(path, PACKAGE.name + "/" + str(path.relative_to(ROOT))) for path in docs]
+    entries += [(path, PACKAGE.name + "/" + str(path.relative_to(runtime))) for path in runtime_files]
     entries.sort(key=lambda item: item[1])
-    require(all(not path.is_symlink() for path in files), "Symlinked package member")
-    require(sum(path.stat().st_size for path, _ in entries) <= MAX_PACKAGE_BYTES, "Extracted package exceeds 20 MB")
+    require(all(not path.is_symlink() for path, _ in entries), "Symlinked package member")
+    package_bytes = sum(path.stat().st_size for path, _ in entries)
+    require(package_bytes < MAX_PACKAGE_BYTES, f"Extracted package exceeds size limit: {package_bytes:,} bytes")
     output_dir = ROOT / "dist"
     output_dir.mkdir(exist_ok=True)
     archive = output_dir / f"AI-Agents-{version}.zip"
-    temporary = output_dir / f".AI-Agents-{version}.zip.tmp"
+    temporary = work / f"AI-Agents-{version}.zip"
     with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         for path, archive_name in entries:
             member = zipfile.ZipInfo(archive_name, date_time=(2026, 11, 6, 0, 0, 0))
@@ -90,36 +126,24 @@ def main() -> int:
         require(bundle.testzip() is None, "ZIP integrity check failed")
         names = set(bundle.namelist())
         require(f"{PACKAGE.name}/plugin.json" in names, "Plugin manifest missing from ZIP")
-        member = bundle.getinfo(f"{PACKAGE.name}/{executable.name}")
+        member = bundle.getinfo(f"{PACKAGE.name}/{executable}")
         require(stat.S_IMODE(member.external_attr >> 16) & stat.S_IXUSR, "Executable bit missing from ZIP")
-    require(temporary.stat().st_size <= MAX_ARCHIVE_BYTES, "Archive exceeds 7 MB")
-    # Exercise the extracted executable with isolated provider roots and HOME.
-    import tempfile
-    with tempfile.TemporaryDirectory() as directory:
-        extracted = Path(directory)
-        with zipfile.ZipFile(temporary) as bundle:
-            bundle.extractall(extracted)
-        isolated = env.copy()
-        isolated.update({"HOME": directory, "CODEX_HOME": str(extracted / "codex"),
-                         "CLAUDE_HOME": str(extracted / "claude"), "XDG_DATA_HOME": str(extracted / "data"),
-                         "DYNAMICLAKE_PLUGIN_SETTINGS_PATH": str(extracted / "no-settings.json"),
-                         "OPENCODE_DB": str(extracted / "absent.db")})
-        output = subprocess.check_output([sys.executable, str(extracted / PACKAGE.name / executable.name), "--check"], env=isolated, text=True)
-        require(json.loads(output)["active"] == 0, "Extracted plugin check failed")
-        require(not list((extracted / PACKAGE.name).rglob("*.pyc")), "Plugin wrote bytecode into package")
+    require(temporary.stat().st_size < MAX_ARCHIVE_BYTES, f"Archive exceeds size limit: {temporary.stat().st_size:,} bytes")
     subprocess.run([sys.executable, str(ROOT / "scripts/smoke_package.py"), str(temporary)], env=env, check=True)
     temporary.replace(archive)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     checksum = archive.with_suffix(".zip.sha256")
     checksum.write_text(f"{digest}  {archive.name}\n")
-    print(f"Created {archive} ({archive.stat().st_size:,} bytes)")
+    print(f"Created {archive} ({archive.stat().st_size:,} bytes ZIP, {package_bytes:,} bytes extracted)")
     print(f"SHA-256: {digest}")
     return 0
 
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        (ROOT / "dist").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".market-build-", dir=ROOT / "dist") as work:
+            raise SystemExit(main(Path(work)))
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Package build failed: {error}", file=sys.stderr)
         raise SystemExit(1)

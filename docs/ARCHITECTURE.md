@@ -17,6 +17,9 @@ flowchart LR
 
 - `ai-agents-monitor.py`: existing import-compatible parsers, settings and framed
   transport; the executable constructs the modular Controller. No bytecode writes.
+- Release packages freeze the monitor, hook and setup entry points into one
+  universal `ai-agents` executable with a shared bundled Python runtime. Logos
+  and setup documentation are resolved beside the installed executable.
 - `agent_models.py`: normalized session, task step, capability, usage and permission
   records. Stable activity identity hashes provider+session; turn IDs govern dismiss
   suppression so another event does not revive a dismissed turn.

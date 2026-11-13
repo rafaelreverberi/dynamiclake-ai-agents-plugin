@@ -1,23 +1,39 @@
-# Release review — 2.0.1
+# Release review — 2.0.2
 
 GitHub Releases distributes the ZIP for local installation in DynamicLake.
 DynamicLake Market has its own submission and review process.
 
 ## Reproduce
 
+Build on macOS with Xcode or its command line tools, Python 3.10+ with pip,
+and network access. On Apple Silicon, install Rosetta on the build machine to
+verify the Intel slice. These are build and test requirements only.
+
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py
 cd dist
-shasum -a 256 -c AI-Agents-2.0.1.zip.sha256
+shasum -a 256 -c AI-Agents-2.0.2.zip.sha256
 ```
 
-The builder runs unit tests, validates Python syntax, identity/version/settings,
-executable bits, bundled agent images, icon/package/payload limits, ZIP integrity and
-an isolated extracted-package check. A synthetic host starts the actual extracted
-monitor and verifies concurrent activities, a Full Lake callback, privacy and clean
-shutdown. ZIP members have fixed timestamps/modes and sorted order; rebuilding the
-same bytes on the same compression runtime produces the same SHA-256. Python/zlib
-version differences can affect compression bytes.
+The builder checks the CPython source checksum and uses pinned, hash-verified
+PyInstaller wheels. It builds universal2 runtime files against Apple system
+libraries, then checks both slices, code signatures, load paths and deployment
+targets. One executable runs the monitor, optional setup commands and all
+Python-based provider hooks. PyInstaller's directory mode keeps the runtime in
+the plugin folder, so a hook can start it directly without unpacking a temporary
+copy. CPython and PyInstaller notices are included under `licenses/`.
+
+Unit tests and a smoke test gate the ZIP. The smoke test extracts it through
+macOS, runs it with no Python on PATH and covers old hook upgrades, hook protocol
+and fallback, OpenCode SQLite, branding assets, concurrent activities, callbacks,
+privacy, reconnect and graceful shutdown. ZIP members have fixed timestamps and
+sorted names. Compiler, SDK and compression versions can change the bytes.
+The local binaries use ad-hoc signatures; the DynamicLake catalog signature
+and publication are handled by the Market.
+
+For future updates, review CPython and PyInstaller security and maintenance
+releases, update the versions and hashes in the build scripts, and rerun the
+full build on both architectures.
 
 ## Additional checks for Market submission
 
@@ -40,9 +56,9 @@ version differences can affect compression bytes.
    terms are in [LICENSE.md](LICENSE.md), and artwork provenance is in [ASSETS.md](ASSETS.md).
 2. Obtain the above host/provider acceptance evidence and review documented limits.
 3. Disclose local metadata reads, optional provider configuration changes/backups,
-   current-user hook IPC, background polling, installed Python dependency and optional
+   current-user hook IPC, background polling, bundled Python runtime and optional
    Codex/OpenAI account requests in submission notes.
-4. Ask maintainers to confirm these optional cross-app hooks/runtime dependencies
+4. Ask maintainers to confirm these optional cross-app hooks and bundled runtime
    are acceptable. Official docs don't guarantee approval of this particular plugin.
 5. Provide support/contact, release notes, downloadable package URL, archive hash
    and **host-compatible extracted package hash**. Its exact canonical hashing

@@ -57,6 +57,12 @@ def run_usage():
     except (OSError,ValueError,TypeError):return 'Claude'
 
 
+def main(args):
+    if args[:2]==['claude','Usage']:print(run_usage())
+    elif len(args)>=2:print(json.dumps(run(*args[:2])))
+    else:return 2
+    return 0
+
+
 if __name__=='__main__':
-    if sys.argv[1:3]==['claude','Usage']:print(run_usage())
-    else:print(json.dumps(run(*sys.argv[1:3])))
+    raise SystemExit(main(sys.argv[1:]))

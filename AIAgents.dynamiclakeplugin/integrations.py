@@ -12,6 +12,7 @@ import stat
 import sys
 import tempfile
 import time
+from agent_paths import package_root
 
 EVENTS = {'claude':['SessionStart','UserPromptSubmit','PreToolUse','PostToolUse','PostToolUseFailure','PermissionRequest','Stop','SessionEnd'],
           'codex':['PermissionRequest']}
@@ -21,8 +22,11 @@ LOCK_WAIT_SECONDS=2
 
 
 def hook_command(provider,event):
-    # Marker is an ignored argparse option; shell quoting protects paths including spaces.
-    return shlex.join([sys.executable,str(Path(__file__).with_name('agent_hook.py').resolve()),provider,event,MARKER])
+    # Shell quoting protects paths including spaces. Keep the marker so older
+    # entries are still recognized and replaced on explicit reinstall.
+    entry = [str(package_root() / Path(sys.executable).name), '--hook'] if getattr(sys, 'frozen', False) else [
+        sys.executable, str(package_root() / 'agent_hook.py')]
+    return shlex.join([*entry,provider,event,MARKER])
 
 
 def owned(item, provider):
@@ -102,11 +106,11 @@ def update_config(path,provider,install,usage=False,keep_usage=False):
         return True
 
 
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',choices=['install','uninstall','install-usage','uninstall-usage'])
     parser.add_argument('provider',choices=list(EVENTS))
-    args=parser.parse_args()
+    args=parser.parse_args(argv)
     path = provider_config(args.provider)
     update_config(path,args.provider,args.action in ('install','install-usage'),usage=args.action.endswith('-usage'))
     print('Hook configuration updated. Existing unrelated hooks preserved. Restart the provider session.')

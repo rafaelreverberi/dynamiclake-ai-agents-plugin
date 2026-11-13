@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import sqlite3
 import time
+from urllib.parse import quote_from_bytes
 from agent_models import AgentSession, AgentTaskStep, AgentCapabilities, short
 
 MAX_READ = 512_000
@@ -412,7 +413,10 @@ class OpenCodeProvider:
             combined={}
             formats=set()
             for db in databases:
-                with closing(sqlite3.connect(db.resolve().as_uri()+'?mode=ro',uri=True,timeout=.1)) as con:
+                # A local POSIX URI only needs path escaping. Path.as_uri() in
+                # Python 3.14 also imports the unused HTTP request stack.
+                uri = 'file://' + quote_from_bytes(os.fsencode(db.resolve())) + '?mode=ro'
+                with closing(sqlite3.connect(uri,uri=True,timeout=.1)) as con:
                     con.row_factory=sqlite3.Row
                     deadline=time.monotonic()+.25
                     con.set_progress_handler(lambda: int(time.monotonic()>deadline),2000)

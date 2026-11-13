@@ -13,6 +13,7 @@ from agent_presentation import Presentation
 from agent_providers import LocalJSONLProvider, OpenCodeProvider
 from agent_usage import UsageMonitor
 from agent_setup import SetupService
+from agent_paths import package_root
 
 
 def settings(legacy):
@@ -253,11 +254,10 @@ class Controller:
 
     def open_guide(self,key):
         links={'console':'https://opencode.ai/console','opencode':'https://opencode.ai/docs/console/go','claude':'https://code.claude.com/docs/en/statusline'}
-        from pathlib import Path
         target=links.get(key)
         if key=='local':
-            guide=Path(__file__).resolve().parent/'docs/SETUP.md'
-            if not guide.exists():guide=Path(__file__).resolve().parent.parent/'docs/SETUP.md'
+            guide=package_root()/'docs/SETUP.md'
+            if not guide.exists():guide=package_root().parent/'docs/SETUP.md'
             if guide.exists():target=str(guide)
         if target:
             try:subprocess.run(['/usr/bin/open',target],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=3)

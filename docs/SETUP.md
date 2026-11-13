@@ -7,6 +7,30 @@
 3. Choose **Setup Claude**, **Setup Codex**, or **Setup OpenCode**.
 4. Check **Usage & limits** in the plugin settings if account limits are missing.
 
+## Update optional integrations from 2.0.1 or earlier
+
+The old hooks and Claude status line reference Python and scripts from the
+previous package. After updating to 2.0.2, refresh only the integrations you
+already use. The setup commands replace this plugin's entries in place and keep
+other hooks and custom status lines. DynamicLake does not edit provider settings
+on startup.
+
+Replace the example path with the executable in the plugin folder managed by
+DynamicLake, rather than a copy in Downloads:
+
+```sh
+ai_agents="/path/to/installed/plugin.dynamiclakeplugin/ai-agents"
+"$ai_agents" --setup install claude        # Claude activity and approval hooks
+"$ai_agents" --setup install-usage claude  # Claude usage collector
+"$ai_agents" --setup install codex         # Codex approval hook
+```
+
+The same integrations can be removed and added again in the usual Setup screens.
+If you used a custom status line to call the old script directly, update its
+command as described below. Restart the affected provider sessions and trust
+the changed Codex hook in Codex if prompted. No action is needed if you only use
+normal activity tracking.
+
 ## Default settings
 
 These defaults apply to a fresh installation. DynamicLake can keep your saved
@@ -53,7 +77,7 @@ atomically. Existing settings and hooks are preserved. Missing quota data appear
 as **Unavailable**. [Claude Code status line documentation](https://code.claude.com/docs/en/statusline)
 
 An existing custom status line stays in place. To keep it and also forward usage,
-have your script pass the same JSON input to `agent_hook.py claude Usage` in the
+have your script pass the same JSON input to `ai-agents --hook claude Usage` in the
 installed package. Use a subprocess timeout, discard the hook's output, and keep
 your script's original output. The hook needs no credentials.
 
@@ -118,8 +142,8 @@ In **Setup Claude**, select **Remove usage input** or
 hooks leaves the usage input installed. You can also use the CLI:
 
 ```sh
-python3 "/path/to/installed/package/integrations.py" uninstall-usage claude
-python3 "/path/to/installed/package/integrations.py" uninstall claude
+"/path/to/installed/package/ai-agents" --setup uninstall-usage claude
+"/path/to/installed/package/ai-agents" --setup uninstall claude
 ```
 
 The second command removes this plugin's marked Claude entries, including the
