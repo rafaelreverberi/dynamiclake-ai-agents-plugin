@@ -17,6 +17,9 @@ TOOL_REQUIREMENTS = Path(__file__).with_name("market-build-requirements.txt")
 # Avoid collecting optional dependency trees reached through the standard library
 # (e.g. email, network TLS, package metadata or GUI support).
 EXCLUDED = (
+    # PyInstaller collects legacy encodings automatically. The monitor, hook
+    # input, and local configuration use UTF-8 on macOS.
+    "_codecs_cn", "_codecs_hk", "_codecs_iso2022", "_codecs_jp", "_codecs_kr", "_codecs_tw",
     "_hashlib", "compression.zstd", "ctypes", "decimal", "email",
     "importlib.metadata", "lzma", "multiprocessing", "pydoc", "ssl",
     "tkinter", "unicodedata", "unittest", "urllib.request",
