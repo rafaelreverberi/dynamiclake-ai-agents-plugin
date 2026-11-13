@@ -12,6 +12,10 @@ The bundled agent marks identify the monitored products. They remain the propert
 
 The package's existing `icon.png` predates version 1.4.0. Its original artwork source is not documented in this checkout; this release leaves it unchanged. No license for that artwork or for third-party marks is granted by this file.
 
+The README banner was supplied by Rafael Reverberi and converted to WebP at its
+original dimensions. It illustrates the plugin’s Progress and Usage views and
+is hosted with the repository documentation, outside the plugin package.
+
 ## 2.0.0-beta.2
 
 The original package icon and all five existing agent images have been restored

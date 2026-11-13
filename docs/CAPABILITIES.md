@@ -1,4 +1,4 @@
-# Current capabilities — 2.0.1
+# Current capabilities — 2.0.2
 
 Only **Codex, Claude Code and OpenCode** are supported. The interface has two
 primary views, Progress and Usage. Permission review appears only for an actual
@@ -56,6 +56,10 @@ rows are suppressed when the same ID exists in v2. Session/metadata edits cannot
 revive old completed work. Discovery is ten seconds; polling one second active /
 three seconds idle. Sparse long-running work can age out; freshness is adjustable.
 Hook queues and pending decisions remain bounded, transient and current-user-only.
+
+OpenCode Desktop channel databases matching `opencode*.db` are discovered under
+`$XDG_DATA_HOME/opencode` or `~/.local/share/opencode`. Set `OPENCODE_DB` to
+override discovery with a specific database.
 
 No provider hooks/configuration or installed DynamicLake plugin were changed by
 this development work. Source/asset distribution terms and Market acceptance are

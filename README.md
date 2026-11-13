@@ -1,172 +1,64 @@
 # AI Agents for DynamicLake
 
-**Codex · Claude Code · OpenCode** — focused progress and usage in your Mac's notch.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rafaelreverberi/dynamiclake-ai-agents-plugin/main/docs/images/ai-agents-banner.webp" width="1200" alt="AI Agents for DynamicLake. The Usage view shows remaining quota for Codex, Claude Code, and OpenCode. The Progress view shows a running Codex task and its recent steps.">
+</p>
 
-**Licensed for DynamicLake only.** You may clone, build and modify this code for
-your own use as a plugin in the DynamicLake app. Porting the code to a standalone
-app or reusing it outside DynamicLake is prohibited. See the
-[DynamicLake-Only License](LICENSE.md) for the full terms.
+<p align="center">
+  <strong>Your coding agents. One glance.</strong><br>
+  Follow Codex, Claude Code, and OpenCode from your Mac’s notch.
+</p>
 
-Version **2.0.2** bundles Python for Apple Silicon and Intel Macs and uses a
-terminal icon in DynaGlance. AI Agents includes a Progress view with
-agent image, current action and recent steps; a Usage view with three
-logo-centered remaining-quota rings. The two circular switches sit at the top.
-A gear button opens guided provider setup; there is no general diagnostics page. The original package icon and agent images
-are preserved. The minimized activity always shows the selected active agent image.
+<p align="center">
+  <a href="https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest"><strong>Download the latest release</strong></a>
+  · <a href="#installation">Installation</a>
+  · <a href="docs/SETUP.md">Setup guide</a>
+  · <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-Concurrent sessions are tracked independently; one stable session is selected for
-the compact notch. Small arrows in Progress cycle between them. Actual completion,
-error and permission symbols and notifications are retained. Unknown progress and
-unknown account quotas are never turned into invented percentages.
+## What you can see
 
-## Install/update
+| View | What it shows |
+| --- | --- |
+| **Progress** | See which agent is running, what it’s doing, and its recent steps. When several sessions are active, use the arrows to switch between them. The compact notch keeps the selected agent in view. |
+| **Usage** | See how much of your account quota is left. Tap a ring for its source, time remaining, and reset in your Mac’s local time zone. Missing data appears as **Unavailable**. |
+| **Approvals** | With the optional Codex or Claude Code hook enabled, review supported requests in DynamicLake and choose **Approve once** or **Deny**. |
 
-Requires macOS and a recent DynamicLake app with JSON plugin support.
-The 2.0.2 package runs on Apple Silicon and Intel and includes its Python
-runtime. Identifier remains
-`com.dynamiclake.plugins.ai-agents` for in-place updates.
+Open AI Agents from **DynaGlance** or assign it as a click Lake. To make Usage the first view between tasks, enable **Show Usage when idle** in the plugin settings.
 
-1. Download the ZIP and its SHA-256 checksum from
-   [GitHub Releases](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest),
-   or [build the package on macOS](RELEASING.md).
-2. Verify using `shasum -a 256 -c AI-Agents-2.0.2.zip.sha256` in that directory.
-3. Extract and select `AIAgents.dynamiclakeplugin` in DynamicLake's
-   **Settings → Plugins → Install Local**. Confirm installation and enable it.
-4. Use Smart Left Click on its activity, or assign AI Agents as the click Lake.
+## Installation
 
-If you installed optional Claude or Codex integrations before updating,
-[refresh them once](docs/SETUP.md#update-optional-integrations-from-201-or-earlier).
+**Requires macOS and a recent version of DynamicLake with JSON plugin support.** The v2.0.2 package runs on Apple Silicon and Intel and includes its Python runtime.
 
-New layouts require advertised `lake` and `lakeLayout` features. Older hosts get a
-minimal supported header; a host rejecting the manifest lake key needs updating.
-Do not change installed package files: rebuild/reinstall through the host.
+1. Download the plugin ZIP and its SHA-256 checksum from [GitHub Releases](https://github.com/rafaelreverberi/dynamiclake-ai-agents-plugin/releases/latest).
+2. In the download folder, verify the ZIP with `shasum -a 256 -c AI-Agents-2.0.2.zip.sha256`. Use the matching checksum filename if you download a different version.
+3. Extract the ZIP. In DynamicLake, open **Settings → Plugins → Install Local**, select `AIAgents.dynamiclakeplugin`, and enable it.
+4. Open AI Agents from **DynaGlance** or use **Smart Left Click** on its activity.
 
-## OpenCode Desktop fix
+> **Updating from 2.0.1 or earlier?** If you previously installed optional provider hooks or the Claude Code usage collector, [refresh those integrations once](docs/SETUP.md#update-optional-integrations-from-201-or-earlier). Basic activity tracking needs no extra setup.
 
-The new desktop writes `session_v2`, `session_message` and `session_part`, while
-retaining legacy tables. Reading only the old tables misses new sessions. This
-build reads both schemas, extracts inline assistant tools, honors idle success /
-failure / interruption and suppresses migrated duplicates. It also discovers
-`opencode*.db` channel variants under `$XDG_DATA_HOME/opencode` or
-`~/.local/share/opencode`. All database access is read-only. `OPENCODE_DB` remains
-an explicit override. The installed 2.2.5 schema was checked without printing
-private contents; lifecycle behavior is covered by synthetic regression fixtures.
+If DynamicLake rejects the plugin manifest or only shows a minimal header, update DynamicLake. The full layout requires the host’s `lake` and `lakeLayout` features.
 
-## Usage and privacy
+## Connect your agents
 
-**Usage & limits** is on by default for new installations. Codex reads its account
-quota through its own `codex app-server` login. Rings show **remaining**, with available
-5-hour/weekly windows. Tap a ring for the quota source, remaining time, and reset time in your local time zone. OpenCode reads Go allowances and Console budgets through its own current CLI.
-Free-model daily counters are not supplied by that API. Claude can receive its
-authentic limits through the local collector below. No fake usage totals.
-Account reads may contact OpenAI through Codex; no credentials are extracted.
+Open the **gear** in the AI Agents view for guided setup. Basic progress tracking reads local session data and works without installing hooks.
 
-File names are visible by default, matching the mockups; use Hide file names or
-Hide project names for screen sharing. Existing saved privacy values are retained.
-Task titles come from metadata, never inferred from a prompt. Original Codex/Claude
-logo variant preferences remain available. The obsolete showAgentLogos setting no
-longer hides identity images. Routine tool events do not trigger notifications.
+| Agent | Account usage | Approvals |
+| --- | --- | --- |
+| **Codex** | Uses your existing Codex sign-in. Shows five-hour and weekly limits when available. | [Optional Codex hook](docs/SETUP.md#codex-usage-and-approvals) |
+| **Claude Code** | [Connect Claude usage](docs/SETUP.md#claude-code-usage-and-approvals) to show five-hour and weekly limits for eligible accounts. Setup preserves existing custom status lines. | [Optional Claude Code hook](docs/SETUP.md#claude-code-usage-and-approvals) |
+| **OpenCode** | Reads available [Go limits and Console budgets](docs/SETUP.md#opencode-usage) through the OpenCode CLI. Free-model daily counts are unavailable. | Review in OpenCode |
 
-## Guided setup and simpler settings
+For defaults, upgrades, and removal instructions, see the [setup guide](docs/SETUP.md).
 
-Open the **gear** in the Lake, then **Setup Claude**, **Setup Codex** or **Setup
-OpenCode**. Claude setup shows what will change and applies it only after Connect;
-it preserves custom displays and existing hooks. Codex approvals use an optional hook. OpenCode can
-check its Console limits or open the official Console/limit guide. Native settings
-include usage, OpenCode monitoring, optional Claude hooks and approvals, notifications,
-privacy controls, image choices, and two opt-in display switches. **Hide setup button**
-hides the gear. **Show Usage when idle** makes Usage the default Lake view
-between tasks without creating a live activity. Use **Usage & limits** to control account quota reads.
-Saved legacy options remain readable when supplied by the host.
+## Privacy and screen sharing
 
-[Setup guide and default settings](docs/SETUP.md)
+Activity monitoring runs locally. Use the privacy settings to hide file and task names while sharing your screen. **Usage & limits** is on by default and can be turned off in plugin settings. Codex and OpenCode may contact their own services to fetch account limits using their existing sign-in. See the [privacy details](PRIVACY.md) and [security notes](SECURITY.md).
 
-Tab/window clicks now publish from cached state immediately instead of waiting
-for the monitoring interval. Lake and Glance content have more side padding, with
-an additional inset around the operation detail column.
+## Project links
 
-## Optional Claude quota input
+[Capabilities](docs/CAPABILITIES.md) · [Architecture](docs/ARCHITECTURE.md) · [Validation](docs/VALIDATION.md) · [Build and release](RELEASING.md) · [Artwork credits](ASSETS.md)
 
-Claude Code's documented `statusLine` JSON can provide actual 5-hour/weekly limits
-for eligible subscriptions, after its first API response. No auth token or extra
-Claude network request is needed. To forward only those quota fields to the plugin:
+**Licensed for DynamicLake only.** You can clone, build, and modify the code for your own use as a DynamicLake plugin. See the [full license](LICENSE.md) for the terms.
 
-```sh
-"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup install-usage claude
-```
-
-Enable **Account usage** in Plugin Settings. This explicitly configures a compact
-Claude terminal status line and forwards quotas over the private local socket;
-it is not another DynamicLake screen. If you already have a custom status line,
-the installer refuses to replace it and leaves the configuration unchanged.
-Remove only this collector with `uninstall-usage claude`; the normal `uninstall
-claude` command also removes this plugin's own collector. Missing/expired windows
-remain unavailable, never inferred from context-window percentages.
-
-## Optional Claude hooks and approvals
-
-Monitoring works without hooks. To use documented Claude lifecycle/permission hooks,
-explicitly run the installer from the **installed** package location:
-
-```sh
-"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup install claude
-```
-
-Then enable **Local provider hooks**, and optionally **Claude approval controls**.
-The installer preserves unrelated hooks, backs up the original configuration
-privately and avoids duplicates. Restart the Claude session to load changes.
-Requests use a private per-user Unix socket, one-shot IDs and a 90-second timeout.
-Timeout/disconnect/shutdown restores native permission handling, never implicit
-approval. No permanent permission rules or tool inputs are rewritten. Oversized
-inputs use the original agent prompt. A queued decision is not tool success.
-
-Before removal:
-
-```sh
-"/absolute/path/AIAgents.dynamiclakeplugin/ai-agents" --setup uninstall claude
-```
-
-Disable/remove the plugin through DynamicLake. Optional provider backups remain
-beside the original config and can contain its pre-existing private settings.
-No event/transcript cache is written. Codex has its own optional approval hook
-described in the [setup guide](docs/SETUP.md#codex-usage-and-approvals).
-
-## OpenCode online usage
-
-With Usage enabled, a bounded background worker invokes the current OpenCode CLI's
-`api experimental.usage.limits --standalone`. It prefers the Desktop app's CLI,
-uses OpenCode's own authentication, reads no credential stores and shuts down its
-private CLI process. Requests are independent of Codex reads and do not block view
-switches. The endpoint is experimental; old CLIs or absent Console/default-location
-context can return no data. A live probe succeeded on the installed CLI but returned
-`data: null`; paid Go values have not been live-confirmed on this account.
-
-Go exposes actual 5-hour/weekly/monthly percentages. Console monthly budgets are
-labeled separately; per-model budgets are not generalized into one account ring.
-Free-model daily counts are not supplied by this contract and remain unknown.
-No inference call is made to test limits, and no tiers/prices are guessed.
-
-## Verification and limits
-
-```sh
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
-./AIAgents.dynamiclakeplugin/ai-agents-monitor.py --check
-PYTHONDONTWRITEBYTECODE=1 python3 scripts/build_release.py
-```
-
-The builder validates/package-tests the extracted runtime, including concurrent
-tracking, one compact activity, Usage callbacks, reconnect and clean shutdown.
-`--check` prints counts only. `--demo-json` follows privacy settings and should be
-used only where displaying local activity metadata is appropriate.
-
-The user supplied real beta.2 screenshots confirming the native baseline layout.
-The beta.3 setup/padding changes still need visual acceptance in the installed host. Automated payload checks are not proof of
-native rendering or Market approval. No integration was installed into the user’s Claude configuration during development;
-setup tests use temporary fixtures.
-
-[Capabilities/UI](docs/CAPABILITIES.md) · [Architecture](docs/ARCHITECTURE.md) ·
-[Research](docs/RESEARCH.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md) ·
-[Assets](ASSETS.md) · [Release checklist](RELEASING.md)
-
-Independent software by Rafael Reverberi with no affiliation with DynamicLake,
-OpenAI, Anthropic or OpenCode. See [asset provenance](ASSETS.md) for third-party marks.
+Built independently by Rafael Reverberi. No affiliation with DynamicLake, OpenAI, Anthropic, or OpenCode.
